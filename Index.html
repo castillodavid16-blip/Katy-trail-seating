@@ -1,1 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Katy Trail Seating</title>
+  <meta name="theme-color" content="#111111">
+  <style>
+    :root{
+      --bg:#f7f7f7;--card:#ffffff;--ink:#111111;--muted:#777;--border:#e5e5e5;
+      --ok:#16a34a;--warn:#f59e0b;--bad:#dc2626;--radius:14px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .wrap{max-width:900px;margin:0 auto;padding:12px}
+    header{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    h1{font-size:20px;margin:0}
+    p.sub{margin:2px 0 0 0;color:var(--muted);font-size:12px}
+    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:8px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+    .pad{padding:10px}
+    .btn{border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer;padding:6px 10px;font-size:14px}
+    .btn:active{transform:scale(.96)}
+    .btn.primary{background:#111;color:#fff;border-color:#111}
+    .btn.warn{background:#fff5f5;color:#900}
+    .stat{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+    .stat .v{font-weight:700;font-size:18px}
+    .stat .l{font-size:11px;color:var(--muted)}
+    .badge{border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:11px;color:#444;white-space:nowrap}
+    input,select{border:1px solid var(--border);border-radius:999px;padding:6px 8px;font-size:14px;width:100%;background:#fff}
+    input[type=number]{-moz-appearance:textfield}
+    input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{ -webkit-appearance:none;margin:0;}
+    .bar{height:10px;border-radius:999px;background:#e5e5e5;overflow:hidden}
+    .bar > div{height:100%}
+    .row-item{display:grid;grid-template-columns:repeat(12,1fr);gap:8px;border:1px solid var(--border);border-radius:var(--radius);padding:10px;background:#fff}
+    .row-item.full{background:#ffecec}
+    .row-item.low{background:#fff7e6}
+    .right{display:flex;justify-content:flex-end;gap:6px}
+    .muted{color:var(--muted);font-size:11px}
+    @media (max-width:760px){
+      .row, .row-item{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Katy Trail Seating</h1>
+        <p class="sub">Track tables and seat availability. Saves on this device.</p>
+      </div>
+      <div class="no-print" style="display:flex;gap:6px">
+        <button class="btn" id="exportCsvBtn">CSV</button>
+        <button class="btn warn" id="clearAllBtn">Clear</button>
+      </div>
+    </header>
 
+    <section class="row" style="margin:10px 0">
+      <div class="card pad stat"><div class="v" id="statTables">0</div><div class="l">Tables</div></div>
+      <div class="card pad stat"><div class="v" id="statSeatsTotal">0</div><div class="l">Seats Total</div></div>
+      <div class="card pad stat"><div class="v" id="statSeatsTaken">0</div><div class="l">Taken</div></div>
+      <div class="card pad stat"><div class="v" id="statSeatsAvail">0</div><div class="l">Open</div></div>
+    </section>
+
+    <section class="card pad" style="margin:10px 0">
+      <div class="muted" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span>Overall occupancy</span><span id="occPct">0%</span>
+      </div>
+      <div class="bar"><div id="occBar" style="width:0%;background:var(--ok)"></div></div>
+    </section>
+
+    <section class="card pad" style="margin-bottom:10px">
+      <div class="row">
+        <div style="grid-column: span 5;">
+          <label class="muted">Search</label>
+          <input id="q" placeholder="table, server, notes">
+        </div>
+        <div style="grid-column: span 3;">
+          <label class="muted">Area</label>
+          <select id="areaFilter">
+            <option value="All">All</option>
+            <option>Patio</option>
+            <option>Inside</option>
+            <option>Bar</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div style="grid-column: span 2;display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="onlySpace" style="width:16px;height:16px">
+          <label for="onlySpace" class="muted">Open only</label>
+        </div>
+        <div style="grid-column: span 2;">
+          <label class="muted">Sort</label>
+          <select id="sortKey">
+            <option value="number">Table #</option>
+            <option value="available">Most open</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card pad" style="margin-bottom:10px">
+      <div class="row">
+        <div style="grid-column: span 3;">
+          <label class="muted">Table #</label>
+          <input id="fNumber">
+        </div>
+        <div style="grid-column: span 3;">
+          <label class="muted">Area</label>
+          <select id="fArea">
+            <option>Patio</option><option>Inside</option><option>Bar</option><option>Other</option>
+          </select>
+        </div>
+        <div style="grid-column: span 3;">
+          <label class="muted">Seats</label>
+          <input type="number" id="fSeats" value="6" min="0">
+        </div>
+        <div style="grid-column: span 2;">
+          <label class="muted">Server</label>
+          <input id="fServer">
+        </div>
+        <div style="grid-column: span 1;display:flex;">
+          <button id="addBtn" class="btn primary" style="width:100%;align-self:end">Add</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="list"></section>
+
+    <footer class="muted" style="margin-top:14px;text-align:center">
+      Tap +/− to adjust. Data stays on this device.
+    </footer>
+  </div>
+
+  <script>
+  (function(){
+    const LS_KEY = "kt-lite";
+    const $ = (s,o=document)=>o.querySelector(s);
+    const list = $("#list");
+
+    let tables = load();
+
+    const q=$("#q"), area=$("#areaFilter"), only=$("#onlySpace"), sort=$("#sortKey");
+
+    q.addEventListener("input",render);
+    area.addEventListener("change",render);
+    only.addEventListener("change",render);
+    sort.addEventListener("change",render);
+
+    $("#addBtn").addEventListener("click",()=>{
+      const num=$("#fNumber").value.trim();
+      if(!num)return;
+      tables.push({
+        id:uid(),number:num,area:$("#fArea").value,
+        seatsTotal:clamp(parseInt($("#fSeats").value||"0"),0,999),
+        seatsTaken:0,
+        server:$("#fServer").value.trim(),
+        notes:"",
+        createdAt:Date.now()
+      });
+      $("#fNumber").value=""; $("#fServer").value="";
+      save(); render();
+    });
+
+    $("#clearAllBtn").addEventListener("click",()=>{
+      if(confirm("Clear everything?")){
+        tables=[]; save(); render();
+      }
+    });
+
+    $("#exportCsvBtn").addEventListener("click",()=>exportCSV(listData()));
+
+    function uid(){return Math.random().toString(36).slice(2,10);}
+    function clamp(v,min,max){return Math.min(max,Math.max(min,isNaN(v)?0:v));}
+    function save(){localStorage.setItem(LS_KEY,JSON.stringify(tables));}
+    function load(){
+      try{
+        const d=JSON.parse(localStorage.getItem(LS_KEY)||"[]");
+        return Array.isArray(d)?d:[];
+      }catch{return [];}
+    }
+
+    function openSeats(t){return Math.max(0,(t.seatsTotal||0)-(t.seatsTaken||0));}
+
+    function listData(){
+      let v=tables.slice();
+      if(area.value!=="All") v=v.filter(t=>t.area===area.value);
+      if(only.checked) v=v.filter(t=>openSeats(t)>0);
+      const s=q.value.trim().toLowerCase();
+      if(s){
+        v=v.filter(t =>
+          String(t.number).toLowerCase().includes(s) ||
+          String(t.server).toLowerCase().includes(s) ||
+          String(t.notes).toLowerCase().includes(s)
+        );
+      }
+      if(sort.value==="available"){
+        v.sort((a,b)=>openSeats(b)-openSeats(a));
+      }else{
+        const an=t=>parseInt(t.number);
+        v.sort((a,b)=>{
+          const na=an(a), nb=an(b);
+          if(!isNaN(na)&&!isNaN(nb)) return na-nb;
+          return String(a.number).localeCompare(String(b.number));
+        });
+      }
+      return v;
+    }
+
+    function render(){
+      const total=tables.reduce((a,t)=>(a.total+=t.seatsTotal||0,a.taken+=t.seatsTaken||0,a),{total:0,taken:0});
+      const open=Math.max(0,total.total-total.taken);
+      const pct=total.total?Math.round(total.taken/total.total*100):0;
+
+      $("#statTables").textContent=tables.length;
+      $("#statSeatsTotal").textContent=total.total;
+      $("#statSeatsTaken").textContent=total.taken;
+      $("#statSeatsAvail").textContent=open;
+
+      $("#occBar").style.width=pct+"%";
+      $("#occBar").style.background=pct<70?"var(--ok)":(pct<90?"var(--warn)":"var(--bad)");
+      $("#occPct").textContent=pct+"%";
+
+      list.innerHTML="";
+      const v=listData();
+      if(v.length===0){
+        const d=document.createElement("div");
+        d.className="card pad";
+        d.style.textAlign="center";
+        d.style.color="var(--muted)";
+        d.textContent="No tables yet.";
+        list.appendChild(d);
+        return;
+      }
+      v.forEach(t=>list.appendChild(row(t)));
+    }
+
+    function row(t){
+      const div=document.createElement("div");
+      const o=openSeats(t);
+      div.className="row-item "+(o===0?"full":(o<=2?"low":""));
+      div.innerHTML=`
+        <div style="grid-column:span 3;display:flex;gap:6px;align-items:center">
+          <input class="table-number" value="${esc(t.number)}">
+          <span class="badge">${t.area}</span>
+        </div>
+
+        <div style="grid-column:span 4;display:flex;gap:10px;">
+          <div>
+            <div class="muted">Taken</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="btn step" data-d="-1">−</button>
+              <div class="val" style="min-width:24px;text-align:center;font-weight:700">${t.seatsTaken}</div>
+              <button class="btn step" data-d="1">+</button>
+            </div>
+          </div>
+          <div>
+            <div class="muted">Total</div>
+            <input type="number" class="seats-total" value="${t.seatsTotal}" min="0" style="width:70px;">
+          </div>
+        </div>
+
+        <div style="grid-column:span 2;">
+          <div class="muted">Open</div>
+          <div class="avail" style="font-weight:700;${o===0?'color:var(--bad);':''}">${o}</div>
+        </
